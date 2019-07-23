@@ -1,0 +1,239 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+<style>
+#friendPage, #chatPage {
+	display: none;
+}
+#chat {
+	margin-bottom:100px;
+	display: flex;
+	flex-direction: column;
+}
+@media screen and (max-width: 991px) {
+  .send {
+    width:100% !important;
+  }
+}
+.send {
+	position:fixed;
+	bottom:0%;
+	width:33.33%;
+	padding:5px;
+	background:white;
+	display:flex;
+}
+.send .btn {
+	margin-left:10px;
+}
+ul {
+	padding: 0px;
+}
+li {
+	width: 100%;
+	color:black;
+	list-style-type: none;
+	padding: 10px;
+}
+ul li p {
+	width:70%;
+	background:#eee;
+    font-size: 16px;
+    border-radius: 10px;
+	padding: 10px;
+	margin:0px;
+	display: inline-block;
+}
+.col-md-4{
+	padding:0px;
+}
+.chatName{
+	font-size:20px;
+	padding-left:20px;
+}
+
+.btnlogin {
+width:100%;
+}
+.rowLogin {
+margin-top:200px;
+}
+.rowMargin {
+    margin-right: 15px;
+    margin-left: 15px;
+}
+.navMenu {
+	padding:10px;
+	color:white;
+	font-size:25px;
+	background: #2ea3a4;
+}
+.friend {	
+	font-size:18px;
+}
+.btn-primary {
+	background: #2ea3a4;
+	border-color:#196667;
+}
+.btn-primary:active, .btn-primary:focus {
+	background: #196667 !important;
+	border-color:#2ea3a4 !important;
+}
+.chat-msg {
+	width: 100%;
+}
+.sentMsg {
+	max-width: 70%;
+	color: white;
+	background: #196667;
+	font-size: 18px;
+	padding: 10px 15px 10px 15px;
+	float: right !important;
+	margin: 0px 10px 15px 0px;
+	letter-spacing: 1px;
+	border-radius: 10px;
+}
+.receiveMsg {
+	max-width: 70%;
+	color: black;
+	background: #e6e6e6;
+	font-size: 18px;
+	padding: 10px 15px 10px 15px;
+	float: left !important;
+	margin: 0px 0px 15px 10px;
+	letter-spacing: 1px;
+	border-radius: 10px;
+}
+</style>
+<body>
+
+	<div id="loginPage" class="container">
+		<div class="row"> 
+			<div class="navMenu navbar-inverse">BUD!</div>
+		</div>
+		<div class="row rowLogin rowMargin">
+			<div class="col-md-4 col-md-offset-4">
+				<form >
+					<div class="form-group">
+					  <label for="usr">Name:</label>
+					  <input type="text" class="form-control" id="usr">
+					</div>
+					<div class="form-group">
+					  <label for="pass">Password:</label>
+					  <input type="password" class="form-control" id="pass">
+					</div>
+					<p>
+						<button type="button" class="btn btnlogin btn-primary" id="enter">ENTER</button>
+					</p>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+	
+	<div id="friendPage" class="container">
+		<div class="row"> 
+			<div class="navMenu navbar-inverse">BUD!</div>
+		</div>
+		<div class="row">
+			<div class="col-md-4 col-md-offset-4">
+				
+				<div  class="list-group onlineUser">
+				  
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<div id="chatPage" class="container">
+		<div class="row">
+			<div class="col-md-4 col-md-offset-4">
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<a >
+						  <span class="glyphicon glyphicon-menu-left" onclick="backToFriends()"></span>
+						</a>
+						<span id="chatName" class="chatName"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class="col-md-4 col-md-offset-4">
+				<div id="chat">
+				</div>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class="col-md-4 col-md-offset-4">
+				<div class="send">
+					<input class="form-control" id="msg">
+					<button class="btn btn-primary" type="button" id="sendbtn">SEND</button>
+				</div>
+			</div>
+		</div>
+		
+	</div>	
+	
+	
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+	
+		var socket = io();
+		var username = '';
+		var chateeName = '';
+	   $('#enter').click(function() {
+		  socket.emit('userData',$('#usr').val());
+		  username = $('#usr').val();
+		  $('#loginPage').slideUp();
+		  $('#friendPage').slideDown();
+	   });
+	  
+		$('#sendbtn').click(function() {
+		if($('#msg').val() != "") {
+			$('#chat').append($('<div class="chat-msg">').append($('<span class="sentMsg">').text($('#msg').val())));
+			socket.emit('private',{ name : chateeName, msg : $('#msg').val() });
+			$('#msg').val('');
+			window.scrollTo(0, document.body.scrollHeight);
+		}
+		});
+		
+	  socket.on('onlineUser', function(user) {
+	  $('.onlineUser').empty();
+	  for( i in user) {
+		if(username != user[i].username) {
+		//$('#onlineUser').append($('<a class="list-group-item friend" onclick="chat(\''+user[i].name+'\')">').append('<img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="50" height="50" class="img-circle">').text(user[i].name));
+		$('.onlineUser').append('<a class="list-group-item friend" onclick="chat(\''+user[i].username+'\')"><img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="40" height="40" class="img-circle">  '+user[i].username+'</a>')
+		}
+	  }
+		 
+	  }) 
+	  
+	  socket.on('chat message', function(msg) {
+		$('#chat').append($('<div class="chat-msg">').append($('<span class="receiveMsg">').text(msg)));
+		window.scrollTo(0, document.body.scrollHeight);
+	  });
+	  
+	  function chat(name) {
+		$('#chatName').html(name);
+		$('#friendPage').slideUp();
+		$('#chatPage').slideDown();
+		chateeName = name;
+	  }
+	  function backToFriends() {
+		$('#chatPage').slideUp();
+		$('#friendPage').slideDown();
+		$('#chat').empty();
+	  }
+	  
+	</script>
+	
+</body>
+</html>
