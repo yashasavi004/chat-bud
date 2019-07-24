@@ -29,6 +29,11 @@
 }
 .send .btn {
 	margin-left:10px;
+	font-size: 20px;
+	height:50px;
+}
+.form-control {
+	height:50px;
 }
 ul {
 	padding: 0px;
@@ -52,8 +57,9 @@ ul li p {
 	padding:0px;
 }
 .chatName{
-	font-size:20px;
-	padding-left:20px;
+	padding-left: 10px;
+    font-size: 25px;
+    margin-top: 5px;
 }
 
 .btnlogin {
@@ -86,6 +92,9 @@ margin-top:200px;
 .chat-msg {
 	width: 100%;
 }
+#msg {
+	height:50px;
+}
 .sentMsg {
 	max-width: 70%;
 	color: white;
@@ -107,6 +116,29 @@ margin-top:200px;
 	margin: 0px 0px 15px 10px;
 	letter-spacing: 1px;
 	border-radius: 10px;
+}
+.typingClass {
+	display:none;
+	font-size: 11px;
+    margin-left: 25px;
+    color: white;
+    background: #2ea3a4;
+    padding: 3px;
+    border-radius: 5px;
+    margin-top: 0px;
+	animation-name: typing;
+	animation-duration: 1s;
+	animation-iteration-count: infinite;
+}
+@keyframes typing {
+   0%   {opacity: 0.3;}
+  100% {opacity: 1;}
+}
+.badge {
+	margin-top:10px;
+	background-color:#2ea3a4;
+	padding: 7px 7px;
+	border-radius: 0px;
 }
 </style>
 <body>
@@ -151,13 +183,17 @@ margin-top:200px;
 
 
 	<div id="chatPage" class="container">
+		<div class="row"> 
+			<div class="navMenu navbar-inverse">BUD!</div>
+		</div>
 		<div class="row">
 			<div class="col-md-4 col-md-offset-4">
 				<div class="panel panel-default">
 					<div class="panel-body">
 						<a >
-						  <span class="glyphicon glyphicon-menu-left" onclick="backToFriends()"></span>
+						  <span class="glyphicon glyphicon-menu-left" style="font-size:20px;" onclick="backToFriends()"></span>
 						</a>
+						<img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="40" height="40" class="img-circle">
 						<span id="chatName" class="chatName"></span>
 					</div>
 				</div>
@@ -174,8 +210,8 @@ margin-top:200px;
 		<div class="row">
 			<div class="col-md-4 col-md-offset-4">
 				<div class="send">
-					<input class="form-control" id="msg">
-					<button class="btn btn-primary" type="button" id="sendbtn">SEND</button>
+					<input class="form-control" placeholder="Type Something...." id="msg">
+					<button class="btn btn-primary" type="button" id="sendbtn"><span class="glyphicon glyphicon-send"></span></button>
 				</div>
 			</div>
 		</div>
@@ -189,36 +225,68 @@ margin-top:200px;
 		var socket = io();
 		var username = '';
 		var chateeName = '';
+		var unreadMsg = [];
+		var allMsg = [];
+		var onlineUserList = [];
+		
 	   $('#enter').click(function() {
 		  socket.emit('userData',$('#usr').val());
 		  username = $('#usr').val();
 		  $('#loginPage').slideUp();
 		  $('#friendPage').slideDown();
+		  showUnreadMsgNumber();
 	   });
 	  
 		$('#sendbtn').click(function() {
 		if($('#msg').val() != "") {
 			$('#chat').append($('<div class="chat-msg">').append($('<span class="sentMsg">').text($('#msg').val())));
-			socket.emit('private',{ name : chateeName, msg : $('#msg').val() });
+			socket.emit('private',{ toName : chateeName, fromName : username,  msg : $('#msg').val() });
+			allMsg.push({ toName : chateeName, fromName : username,  msg : $('#msg').val(), msgStatus : 'sent' });
 			$('#msg').val('');
 			window.scrollTo(0, document.body.scrollHeight);
 		}
 		});
 		
 	  socket.on('onlineUser', function(user) {
+	  onlineUserList = [];
+	  onlineUserList  = user;
 	  $('.onlineUser').empty();
 	  for( i in user) {
 		if(username != user[i].username) {
-		//$('#onlineUser').append($('<a class="list-group-item friend" onclick="chat(\''+user[i].name+'\')">').append('<img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="50" height="50" class="img-circle">').text(user[i].name));
-		$('.onlineUser').append('<a class="list-group-item friend" onclick="chat(\''+user[i].username+'\')"><img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="40" height="40" class="img-circle">  '+user[i].username+'</a>')
+		$('.onlineUser').append('<a class="list-group-item friend" id="'+user[i].username+'" onclick="chat(\''+user[i].username+'\')"><img src="https://afcm.ca/wp-content/uploads/2018/06/no-photo-300x300.png" width="40" height="40" class="img-circle">  '+user[i].username+'<span    class="typingClass">Typing</span><span style="display:none;" class="badge">0</span></a>')
 		}
 	  }
 		 
 	  }) 
 	  
-	  socket.on('chat message', function(msg) {
-		$('#chat').append($('<div class="chat-msg">').append($('<span class="receiveMsg">').text(msg)));
-		window.scrollTo(0, document.body.scrollHeight);
+	  socket.on('chat message', function(msgObj) {
+		if(msgObj.fromName === chateeName) {
+			$('#chat').append($('<div class="chat-msg">').append($('<span class="receiveMsg">').text(msgObj.msg)));
+			msgObj.msgStatus = 'read';
+			allMsg.push(msgObj);
+			window.scrollTo(0, document.body.scrollHeight);	
+		}
+		else {
+			allMsg.push(msgObj);
+			showUnreadMsgNumber();
+		}
+		
+	  });
+	  
+	  socket.on('onTyping', function(fromName) {
+		$('#'+fromName).children('span.typingClass').show();
+	  });
+	  
+	  socket.on('offTyping', function(fromName) {
+		$('#'+fromName).children('span.typingClass').hide();
+	  });
+	  
+	  $('#msg').focusin(function() {
+		socket.emit('typing in emit', {toName : chateeName, fromName : username});
+	  });
+	  
+	  $('#msg').focusout(function() {
+		socket.emit('typing out emit', {toName : chateeName, fromName : username});
 	  });
 	  
 	  function chat(name) {
@@ -226,12 +294,64 @@ margin-top:200px;
 		$('#friendPage').slideUp();
 		$('#chatPage').slideDown();
 		chateeName = name;
+		readMsg(chateeName);
+		showStoredMsg(chateeName);
 	  }
 	  function backToFriends() {
 		$('#chatPage').slideUp();
 		$('#friendPage').slideDown();
 		$('#chat').empty();
+		chateeName = '';
+		showUnreadMsgNumber();
 	  }
+	  
+	  function showUnreadMsgNumber() {
+		/*for(var j in onlineUserList) {
+			$('#'+onlineUserList[j].username).children('span.badge').html('0').hide();
+		}
+		for(var i in unreadMsg) {
+			if(search(unreadMsg[i].fromName,onlineUserList) == 1) {
+				$('#'+unreadMsg[i].fromName).children('span.badge').html(+$('#'+unreadMsg[i].fromName).children('span.badge').html()+1).show()
+			}
+		}*/
+		for(var j in onlineUserList) {
+			$('#'+onlineUserList[j].username).children('span.badge').html('0').hide();
+		}
+		for(var i in allMsg) {
+			if(allMsg[i].msgStatus == 'unread' ) {	
+				$('#'+allMsg[i].fromName).children('span.badge').html(+$('#'+allMsg[i].fromName).children('span.badge').html()+1).show();
+			}
+		}
+		
+	  }
+	  
+	  function search(nameKey, myArray){
+			for (var i=0; i < myArray.length; i++) {
+				if (myArray[i].username === nameKey) {
+					return 1;
+				}
+			}
+			return -1;
+		}
+		
+		function readMsg(name) {
+			for(var i in allMsg) {
+				if(allMsg[i].fromName == name) {
+					allMsg[i].msgStatus = 'read';
+				}
+			}
+		}
+		
+		function showStoredMsg(name) {
+			for(var i in allMsg) {
+				if(allMsg[i].fromName == name) {
+					$('#chat').append($('<div class="chat-msg">').append($('<span class="receiveMsg">').text(allMsg[i].msg)));
+				}
+				if(allMsg[i].fromName == username) {
+					$('#chat').append($('<div class="chat-msg">').append($('<span class="sentMsg">').text(allMsg[i].msg)));
+				}
+			}
+		}
 	  
 	</script>
 	
