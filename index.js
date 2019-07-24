@@ -29,11 +29,25 @@ io.on('connection', function(socket){
 	});
 	
 	socket.on('private', function(chatObj) {
-		var chateeInd = findWithAttr(onlineUser, 'username', chatObj.name);
+		var chateeInd = findWithAttr(onlineUser, 'username', chatObj.toName);
 		if(chateeInd != -1) {
-			onlineUser[chateeInd].socketObj.emit('chat message', chatObj.msg);
+			onlineUser[chateeInd].socketObj.emit('chat message', { msg : chatObj.msg, fromName : chatObj.fromName, toName : chatObj.toName, msgStatus: 'unread' });
 		}
 		
+	});
+	
+	socket.on('typing in emit',function(names) {
+		var ind = findWithAttr(onlineUser, 'username', names.toName)
+		if( ind != -1) {
+			onlineUser[ind].socketObj.emit('onTyping',names.fromName);
+		}
+	});
+	
+	socket.on('typing out emit',function(names) {
+		var ind = findWithAttr(onlineUser, 'username', names.toName)
+		if( ind != -1) {
+			onlineUser[ind].socketObj.emit('offTyping',names.fromName);
+		}
 	});
 	
 	socket.on('disconnect', function(){
