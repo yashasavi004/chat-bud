@@ -141,7 +141,7 @@ margin-top:200px;
 	border-radius: 0px;
 }
 </style>
-<body>
+<body onload="authUser()">
 
 	<div id="loginPage" class="container">
 		<div class="row"> 
@@ -222,19 +222,26 @@ margin-top:200px;
 	<script src="/socket.io/socket.io.js"></script>
 	<script>
 	
+		
+	
 		var socket = io();
 		var username = '';
 		var chateeName = '';
 		var unreadMsg = [];
 		var allMsg = [];
+		//{ toName : chateeName, fromName : username,  msg : message, msgStatus : status }
 		var onlineUserList = [];
 		
+		
 	   $('#enter').click(function() {
-		  socket.emit('userData',$('#usr').val());
-		  username = $('#usr').val();
-		  $('#loginPage').slideUp();
-		  $('#friendPage').slideDown();
-		  showUnreadMsgNumber();
+		  if(validateUser()) {
+			  storeUserLocal();
+			  socket.emit('userData',$('#usr').val());
+			  username = $('#usr').val();
+			  $('#loginPage').slideUp();
+			  $('#friendPage').slideDown();
+			  showUnreadMsgNumber();
+		  }
 	   });
 	  
 		$('#sendbtn').click(function() {
@@ -289,6 +296,16 @@ margin-top:200px;
 		socket.emit('typing out emit', {toName : chateeName, fromName : username});
 	  });
 	  
+	  function authUser() {
+		if( localStorage.getItem("username") != null) {
+			  socket.emit('userData',localStorage.getItem("username"));
+			  username = localStorage.getItem("username");
+			  $('#loginPage').slideUp();
+			  $('#friendPage').slideDown();
+			  showUnreadMsgNumber();
+		}
+	  }
+	  
 	  function chat(name) {
 		$('#chatName').html(name);
 		$('#friendPage').slideUp();
@@ -301,6 +318,7 @@ margin-top:200px;
 		$('#chatPage').slideUp();
 		$('#friendPage').slideDown();
 		$('#chat').empty();
+		storeUnsendMsg();
 		chateeName = '';
 		showUnreadMsgNumber();
 	  }
@@ -343,16 +361,60 @@ margin-top:200px;
 		}
 		
 		function showStoredMsg(name) {
+			$('#msg').val('');
 			for(var i in allMsg) {
-				if(allMsg[i].fromName == name) {
+				if(allMsg[i].fromName == name && allMsg[i].msgStatus != 'unsent') {
 					$('#chat').append($('<div class="chat-msg">').append($('<span class="receiveMsg">').text(allMsg[i].msg)));
 				}
-				if(allMsg[i].fromName == username) {
+				if(allMsg[i].fromName == username && allMsg[i].toName == name && allMsg[i].msgStatus != 'unsent') {
 					$('#chat').append($('<div class="chat-msg">').append($('<span class="sentMsg">').text(allMsg[i].msg)));
 				}
+				if(allMsg[i].msgStatus == 'unsent' && allMsg[i].toName == chateeName) {
+					$('#msg').val(allMsg[i].msg);
+					$('#msg').focus();
+				}
+				
 			}
 		}
+		function storeUnsendMsg() {
+			if($('#msg').val() != '') {
+				allMsg.push({ toName : chateeName, fromName : username,  msg : $('#msg').val(), msgStatus : 'unsent' })
+			}
+		}
+		
+		function validateUser() {
+			if($('#usr').val() != '' && $('#pass').val() != '') {
+					return 1;
+			}
+			alert('Fill all fields');
+			return 0;
+		}
+		
+		function storeUserLocal() {
+			localStorage.setItem('username',$('#usr').val());
+			localStorage.setItem('password',$('#pass').val());
+		}
 	  
+	</script>
+		<!-- The core Firebase JS SDK is always required and must be listed first -->
+		<script src="https://www.gstatic.com/firebasejs/6.3.1/firebase-app.js"></script>
+
+		<!-- TODO: Add SDKs for Firebase products that you want to use
+		 https://firebase.google.com/docs/web/setup#config-web-app -->
+
+	<script>
+	  // Your web app's Firebase configuration
+	  var firebaseConfig = {
+		apiKey: "AIzaSyCuFyWZ3y4cwYVZKpBOvbioh9oN6jEfTjM",
+		authDomain: "chat-bud.firebaseapp.com",
+		databaseURL: "https://chat-bud.firebaseio.com",
+		projectId: "chat-bud",
+		storageBucket: "",
+		messagingSenderId: "541295557670",
+		appId: "1:541295557670:web:dfedb6d3de88cf4f"
+	  };
+	  // Initialize Firebase
+	  firebase.initializeApp(firebaseConfig);
 	</script>
 	
 </body>
